@@ -1,0 +1,50 @@
+name:                PkUtilities
+version:             0.1.0.0
+github:              "githubuser/PkUtilities"
+license:             BSD3
+author:              "Abastro"
+maintainer:          "Abastro"
+copyright:           "2020 Abastro"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/Abastro/PkUtilities#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- containers == 0.6.*
+- mtl == 2.2.*
+
+library:
+  source-dirs: src
+
+executables:
+  ListEdit:
+    main:                ListEdit.hs
+    source-dirs:         app/listedit
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - PkUtilities
+
+tests:
+  PkUtilities-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - PkUtilities
