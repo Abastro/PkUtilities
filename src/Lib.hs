@@ -1,21 +1,28 @@
 module Lib (
-  Interactive(..), application,
-  prompt, putLine
+  Action, Interactive(..), application,
+  prompt, putLine, pairToList, readOrMakeFile
 ) where
 
 import Control.Monad ( forever )
-import Control.Monad.State ( StateT, evalStateT )
-import System.IO ( hFlush, stdout )
+import Control.Monad.Reader ( ReaderT(..) )
+import Control.Monad.State ( StateT(..), evalStateT )
+import Control.Exception ( catch, throwIO )
 
-data Interactive a = Interactive {
-  setup :: IO a,
-  loop :: StateT a IO ()
+import System.IO ( hFlush, stdout )
+import System.IO.Error ( isDoesNotExistError )
+
+type Action r s = ReaderT r (StateT s IO) () 
+
+data Interactive r s = Interactive {
+  setup :: IO (r, s),
+  loop :: Action r s
 }
 
-application :: Interactive a -> IO ()
+application :: Interactive r s -> IO ()
 application app = do
-  p <- setup app
-  evalStateT (forever $ loop app) p
+  (env, state) <- setup app
+  let theLoop = forever $ loop app
+  evalStateT (runReaderT theLoop env) state
 
 prompt :: String -> IO String
 prompt text = do
@@ -25,3 +32,14 @@ prompt text = do
 
 putLine :: IO ()
 putLine = putStrLn ""
+
+readOrMakeFile :: FilePath -> String -> IO String
+readOrMakeFile path def = catch (readFile path) recover where
+  recover e
+    | isDoesNotExistError e = writeFile path def >> pure def
+    | otherwise = throwIO e
+
+
+pairToList :: (a, a) -> [a]
+pairToList (x, y) = [x, y]
+
