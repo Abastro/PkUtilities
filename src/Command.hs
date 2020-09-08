@@ -1,20 +1,26 @@
 module Command where
 
-import Control.Monad (when)
+import Control.Monad ( when )
 
-import Data.Maybe (listToMaybe)
-import Data.Functor.Compose (Compose(..))
+import Data.Maybe ( listToMaybe )
+import Data.Functor.Compose ( Compose(..) )
 
-import Data.List (intercalate)
+import Data.List ( intercalate )
 import Data.Map ( Map )
 import qualified Data.Map as Map
 
 import Text.Read
-import Text.Read.Lex
-import qualified Text.ParserCombinators.ReadP as RP
-
-
-
+    ( ReadPrec,
+      lexP,
+      choice,
+      lift,
+      minPrec,
+      pfail,
+      readPrec_to_S,
+      (<++),
+      Lexeme(..) )
+import Text.Read.Lex ( Number )
+import Text.ParserCombinators.ReadP ( munch )
 
 -- |Parsing format. First parameter is name
 data Format =
@@ -80,13 +86,12 @@ numberCmd name = Compose (FNumber name, do
 
 maybeCmd :: CmdParse a -> CmdParse (Maybe a)
 maybeCmd (Compose (f, p)) = Compose (FMaybe f,
-  choice [Just <$> p, pure Nothing])
+  (Just <$> p) <++ pure Nothing)
 
 failOn :: (a -> Maybe b) -> CmdParse a -> CmdParse b
 failOn f = Compose . (fmap $ \x -> do
   Just y <- f <$> x
   pure y) . getCompose
-
 
 
 type Commands a = Map String (CmdParse a)
@@ -109,8 +114,8 @@ processCommand cmds input = let
     Ident i <- lexP
     Just parse <- pure $ Map.lookup i cmds
     let (format, parser) = getCompose parse
-    choice [ Right <$> parser,
-      (Left $ FIdent i <> format) <$ lift (RP.munch $ const True) ]
+    (Right <$> parser) <++
+      ((Left $ FIdent i <> format) <$ lift (munch $ const True))
   in maybe (Left $ FChoice []) id . listToMaybe $ do
     (act, "") <- readPrec_to_S process minPrec input
     pure act

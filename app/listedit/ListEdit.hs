@@ -1,4 +1,4 @@
-module Main where
+module Main (main) where
 
 import Control.Monad ( when, unless, guard, forever, (>=>) )
 import Control.Monad.IO.Class ( MonadIO(..) )
@@ -9,12 +9,7 @@ import Control.Exception ( evaluate )
 import Data.Maybe ( isNothing, isJust )
 import Data.List ( intercalate )
 
-import Text.Read
-  ( Read(..), ReadPrec(..), lexP, choice, readMaybe, (+++) )
-import Text.ParserCombinators.ReadP
-  ( string, munch, skipSpaces )
-import Text.Read.Lex ( Lexeme(..), numberToInteger )
-import qualified Text.Read as Read
+import Text.Read.Lex ( numberToInteger )
 
 import System.Exit ( exitSuccess )
 import System.Environment ( getArgs )
@@ -60,9 +55,9 @@ app = Interactive {
         liftIO putLine
 }
 
-
 numbering :: [String] -> [String]
 numbering = zipWith (<>) $ (<> ". ") . show <$> [1..]
+
 
 {- Actions -}
 

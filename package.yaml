@@ -1,6 +1,6 @@
 name:                PkUtilities
 version:             0.1.0.0
-github:              "githubuser/PkUtilities"
+github:              "Abastro/PkUtilities"
 license:             BSD3
 author:              "Abastro"
 maintainer:          "Abastro"
@@ -28,7 +28,7 @@ library:
   source-dirs: src
 
 executables:
-  ListEdit:
+  listedit:
     main:                ListEdit.hs
     source-dirs:         app/listedit
     ghc-options:
@@ -37,6 +37,17 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - PkUtilities
+
+  dataedit:
+    main:                DataEdit.hs
+    source-dirs:         app/dataedit
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - PkUtilities
+
 
 tests:
   PkUtilities-test:
