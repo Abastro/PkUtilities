@@ -1,32 +1,41 @@
-module Main (main) where
+{--------------------------------------
+        Minimalistic List Editor
+---------------------------------------}
+module Main ( main ) where
 
 import Control.Monad ( when, unless, guard, forever, (>=>) )
 import Control.Monad.IO.Class ( MonadIO(..) )
-import Control.Monad.Reader ( MonadReader(..) )
-import Control.Monad.State ( evalStateT, modify, MonadState(..) )
+import Control.Monad.Reader ( MonadReader(..), asks )
+import Control.Monad.State ( MonadState(..), gets, modify )
 import Control.Exception ( evaluate )
 
 import Data.Maybe ( isNothing, isJust )
 import Data.List ( intercalate )
+import Data.Foldable ( traverse_ )
+import Data.Sequence ( Seq )
+import qualified Data.Sequence as Seq
 
 import Text.Read.Lex ( numberToInteger )
 
 import System.Exit ( exitSuccess )
 import System.Environment ( getArgs )
+import GHC.Exts ( IsList (..) )
 
 import Lib
 import Command
 
 
+type AppState = Seq String
+
 main :: IO ()
 main = application app
 
-app :: Interactive FilePath [String]
+app :: Interactive FilePath AppState
 app = Interactive {
   setup = do
-    putStrLn "---------------------"
-    putStrLn "   [ListEdit v0.1]   "
-    putStrLn "---------------------"
+    putStrLn "-----------------------"
+    putStrLn "   [ListEdit v0.2.0]   "
+    putStrLn "-----------------------"
 
     args <- getArgs
     path <- case filter ((/= "--") . take 2) args of
@@ -34,98 +43,115 @@ app = Interactive {
       [path] -> pure path
       _ -> fail "Too many arguments"
 
-    list <- lines <$> readOrMakeFile path ""
-    evaluate $ length list -- Reads to the end
-
+    list <- load path
     when ("--view" `elem` args) $ do
-      putStrLn . unlines . numbering $ list
+      traverse_ putStrLn $ numbering list
+      putLine
       exitSuccess
-
     pure (path, list)
 
   ,loop = do
     cmd <- liftIO $ prompt "|listedit|> "
     unless (null cmd) $ case processCommand commands cmd of
-      Right action -> action
-      Left (FChoice []) -> do
-        liftIO $ putStrLn "Invalid operation"
-        liftIO putLine
-      Left format -> do
+      Right action -> do
+        action >> liftIO putLine
+      Left (FChoice []) -> liftIO $ do
+        putStrLn "Invalid operation"
+        putLine
+      Left format -> liftIO $ do
         showUsage format
-        liftIO putLine
+        putLine
 }
 
-numbering :: [String] -> [String]
-numbering = zipWith (<>) $ (<> ". ") . show <$> [1..]
+load :: FilePath -> IO (Seq String)
+load path = fromList . lines <$> readOrMakeFile path ""
+
+save :: FilePath -> Seq String -> IO ()
+save path = writeFile path . unlines . toList
+
+showUsage :: Format -> IO ()
+showUsage format = putStrLn $ "Usage: " <> show format
+
+inRange :: Int -> Action FilePath AppState () -> Action FilePath AppState ()
+inRange i r = do
+  list <- get
+  if i > 0 && i <= length list then r
+  else liftIO $ putStrLn "Out of range"
+
+numbering :: Seq String -> Seq String
+numbering = Seq.mapWithIndex (\i -> (<>) $ show (i + 1) <> ". ")
 
 
 {- Actions -}
 
-modifyIt :: ([String] -> [String]) -> Action FilePath [String]
-modifyIt f = do
-  modify f
-  path <- ask
-  get >>= liftIO . writeFile path . unlines
-
-printIt :: Action FilePath [String]
-printIt = get >>= liftIO . putStrLn . unlines . numbering
-
-showUsage :: Format -> Action FilePath [String]
-showUsage format = liftIO . putStrLn $ "Usage: " <> show format
+printIt :: Action r AppState ()
+printIt = get >>= traverse_ (liftIO . putStrLn) . numbering
 
 
 {- Commands -}
 
-readMaybeInt :: String -> CmdParse (Maybe Int)
-readMaybeInt name = maybeCmd $
+intCmd :: String -> CmdParse Int
+intCmd name =
   failOn (fmap fromInteger . numberToInteger) (numberCmd name)
 
-commands :: Commands (Action FilePath [String])
+commands :: Commands (Action FilePath AppState ())
 commands = mkCommands [
   ("help", cmdHelp)
-  , ("add", cmdAdd)
-  , ("remove", cmdRemove)
-  , ("clear", cmdClear)
   , ("view", cmdView)
   , ("quit", cmdQuit)
-  ]
+  , ("revert", cmdRevert)
+  , ("save", cmdSave)
+  , ("add", cmdAdd)
+  , ("remove", cmdRemove)
+  , ("move", cmdMove)
+  , ("clear", cmdClear)
+  ] where
+  cmdHelp = help <$> maybeCmd (getIdentCmd "<command>") where
+    help (Just cmd) = liftIO $ do
+      let format = cmdFormatOf cmd commands
+      maybe (putStrLn "Command does not exist") showUsage format
+    help Nothing = liftIO $ do
+      putStrLn "Available commands:"
+      traverse_ putStrLn $ cmdKeys commands
 
-cmdHelp :: CmdParse (Action FilePath [String])
-cmdHelp = help <$> maybeCmd (getIdentCmd "<command>") where
-  help (Just cmd) = do
-    let format = cmdFormatOf cmd commands
-    maybe (liftIO $ putStrLn "Command does not exist") showUsage format
-    liftIO putLine
-  help Nothing = do
-    liftIO . putStrLn $ "Available commands: " <> unwords (cmdKeys commands)
-    liftIO putLine
-
-cmdAdd :: CmdParse (Action FilePath [String])
-cmdAdd = add <$> readMaybeInt "index" <*> stringCmd "content" where
-  add (Just num) str = do
-    modifyIt (intercalate [str] . pairToList . splitAt (num - 1))
+  cmdView = pure printIt
+  cmdQuit = pure $ do -- Currently always save on quit
+    saving <- asks save
+    get >>= liftIO . saving
+    liftIO $ putStrLn "Saved to disk"
+    liftIO $ putLine >> exitSuccess
+  cmdRevert = pure $ do
+    loading <- asks load
+    liftIO loading >>= put
     printIt
-  add Nothing str = do
-    modifyIt (<> [str])
-    printIt
+  cmdSave = pure $ do
+    saving <- asks save
+    get >>= liftIO . saving
+    liftIO $ putStrLn "Saved"
 
-cmdRemove :: CmdParse (Action FilePath [String])
-cmdRemove = remove <$> readMaybeInt "index" where
-  remove (Just num) = do
-    modifyIt (fmap snd . filter ((/= num) . fst) . zip [1..])
-    printIt
-  remove Nothing = do
-    modifyIt $ drop 1
-    printIt
+  cmdAdd = add <$> maybeCmd (intCmd "index") <*> stringCmd "content" where
+    add (Just num) content = inRange num $ do
+      modify (Seq.insertAt (num - 1) content)
+      printIt
+    add Nothing content = do
+      modify (flip (Seq.|>) content)
+      printIt
 
-cmdClear :: CmdParse (Action FilePath [String])
-cmdClear = pure clear where
-  clear = do
-    modifyIt $ const []
-    liftIO $ putStrLn "Cleared" >> putLine
+  cmdRemove = remove <$> maybeCmd (intCmd "index") where
+    remove (Just num) = inRange num $ do
+      modify (Seq.deleteAt (num - 1))
+      printIt
+    remove Nothing = do
+      modify (Seq.drop 1)
+      printIt
 
-cmdView :: CmdParse (Action FilePath [String])
-cmdView = pure printIt
+  cmdMove = move <$> intCmd "from" <*> intCmd "to" where
+    move from to = inRange from . inRange to $ do
+      item <- gets (flip Seq.index (from - 1))
+      modify (Seq.insertAt (to - 1) item
+        . Seq.deleteAt (from - 1))
+      printIt
 
-cmdQuit :: CmdParse (Action FilePath [String])
-cmdQuit = pure $ liftIO exitSuccess
+  cmdClear = pure $ do
+    put Seq.empty
+    liftIO $ putStrLn "Cleared"

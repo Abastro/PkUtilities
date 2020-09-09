@@ -11,11 +11,11 @@ import Control.Exception ( catch, throwIO )
 import System.IO ( hFlush, stdout )
 import System.IO.Error ( isDoesNotExistError )
 
-type Action r s = ReaderT r (StateT s IO) () 
+type Action r s = ReaderT r (StateT s IO)
 
 data Interactive r s = Interactive {
   setup :: IO (r, s),
-  loop :: Action r s
+  loop :: Action r s ()
 }
 
 application :: Interactive r s -> IO ()

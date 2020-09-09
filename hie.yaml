@@ -1,9 +1,9 @@
 cradle:
   stack:
-    - path: "./src/"
-      component: "PkUtilities:lib"
-    - path: "./app/listedit/"
-      component: "PkUtilities:listedit"
-    - path: "./app/dataedit/"
-      component: "PkUtilities:dataedit"
+    - path: "./src"
+      component: "pkutilities:lib"
+    - path: "./app/listedit"
+      component: "pkutilities:exe:listedit"
+    - path: "./app/dataedit"
+      component: "pkutilities:exe:dataedit"
 

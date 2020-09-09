@@ -1,4 +1,4 @@
-name:                PkUtilities
+name:                pkutilities
 version:             0.1.0.0
 github:              "Abastro/PkUtilities"
 license:             BSD3
@@ -36,7 +36,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - PkUtilities
+    - pkutilities
 
   dataedit:
     main:                DataEdit.hs
@@ -46,8 +46,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - PkUtilities
-
+    - pkutilities
 
 tests:
   PkUtilities-test:
@@ -58,4 +57,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - PkUtilities
+    - pkutilities
