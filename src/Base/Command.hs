@@ -1,4 +1,4 @@
-module Command where
+module Base.Command where
 
 import Control.Monad ( when )
 

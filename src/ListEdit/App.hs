@@ -1,7 +1,7 @@
 {--------------------------------------
         Minimalistic List Editor
 ---------------------------------------}
-module Main ( main ) where
+module ListEdit.App ( app ) where
 
 import Control.Monad ( when, unless, guard, forever, (>=>) )
 import Control.Monad.IO.Class ( MonadIO(..) )
@@ -21,14 +21,11 @@ import System.Exit ( exitSuccess )
 import System.Environment ( getArgs )
 import GHC.Exts ( IsList (..) )
 
-import Lib
-import Command
+import Base.Lib
+import Base.Command
 
 
 type AppState = Seq String
-
-main :: IO ()
-main = application app
 
 app :: Interactive FilePath AppState
 app = Interactive {

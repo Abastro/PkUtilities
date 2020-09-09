@@ -1,12 +1,10 @@
-{-------------------------------------
-        Simplistic Data Editor
---------------------------------------}
-module Main (main) where
+module DataEdit.App ( app ) where
 
-import Lib
-import System.Environment (getArgs)
-import Control.Monad.IO.Class (MonadIO(..))
-import Command
+import Control.Monad.IO.Class ( MonadIO(..) )
+
+import System.Environment ( getArgs )
+
+import Base.Lib
 
 data Environment = Environment {
   script :: String,
@@ -15,9 +13,6 @@ data Environment = Environment {
 
 data DataState = DataState {
 }
-
-main :: IO ()
-main = application app
 
 app :: Interactive Environment DataState
 app = Interactive {
@@ -40,6 +35,7 @@ app = Interactive {
     pure ()
 }
 
-cmdView :: CmdParse (Action Environment DataState ())
-cmdView = undefined
 
+-- Add row with condition
+-- Find row with key
+-- Produce table

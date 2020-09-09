@@ -26,10 +26,17 @@ dependencies:
 
 library:
   source-dirs: src
+  default-extensions:
+  - FlexibleContexts
+  - FlexibleInstances
+  - DeriveFunctor
+  - DeriveFoldable
+  - DeriveTraversable
+  - TupleSections
 
 executables:
   listedit:
-    main:                ListEdit.hs
+    main:                Main.hs
     source-dirs:         app/listedit
     ghc-options:
     - -threaded
@@ -39,7 +46,7 @@ executables:
     - pkutilities
 
   dataedit:
-    main:                DataEdit.hs
+    main:                Main.hs
     source-dirs:         app/dataedit
     ghc-options:
     - -threaded

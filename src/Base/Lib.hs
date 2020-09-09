@@ -1,4 +1,4 @@
-module Lib (
+module Base.Lib (
   Action, Interactive(..), application,
   prompt, putLine, pairToList, readOrMakeFile
 ) where
