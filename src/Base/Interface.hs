@@ -1,6 +1,6 @@
-module Base.Lib (
+module Base.Interface (
   Action, Interactive(..), application,
-  prompt, putLine, pairToList, readOrMakeFile
+  prompt, putLine, readOrMakeFile
 ) where
 
 import Control.Monad ( forever )
@@ -38,8 +38,4 @@ readOrMakeFile path def = catch (readFile path) recover where
   recover e
     | isDoesNotExistError e = writeFile path def >> pure def
     | otherwise = throwIO e
-
-
-pairToList :: (a, a) -> [a]
-pairToList (x, y) = [x, y]
 

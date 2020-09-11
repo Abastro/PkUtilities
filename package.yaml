@@ -23,6 +23,9 @@ dependencies:
 - base >= 4.7 && < 5
 - containers == 0.6.*
 - mtl == 2.2.*
+- direct-sqlite == 2.3.*
+- text == 1.2.*
+- bytestring == 0.10.*
 
 library:
   source-dirs: src

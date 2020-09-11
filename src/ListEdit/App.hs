@@ -21,9 +21,8 @@ import System.Exit ( exitSuccess )
 import System.Environment ( getArgs )
 import GHC.Exts ( IsList (..) )
 
-import Base.Lib
+import Base.Interface
 import Base.Command
-
 
 type AppState = Seq String
 

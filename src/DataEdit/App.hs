@@ -4,7 +4,7 @@ import Control.Monad.IO.Class ( MonadIO(..) )
 
 import System.Environment ( getArgs )
 
-import Base.Lib
+import Base.Interface
 
 data Environment = Environment {
   script :: String,

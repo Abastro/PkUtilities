@@ -3,7 +3,7 @@
 ---------------------------------------}
 module Main ( main ) where
 
-import Base.Lib ( application )
+import Base.Interface ( application )
 import ListEdit.App ( app )
 
 main :: IO ()
