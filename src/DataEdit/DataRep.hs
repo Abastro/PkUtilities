@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE RankNTypes #-}
 module DataEdit.DataRep where
@@ -5,6 +7,14 @@ module DataEdit.DataRep where
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.ByteString (ByteString)
+import Data.Foldable (Foldable(..))
+import Data.Maybe (maybeToList, fromJust)
+
+import Control.Monad (ap, guard)
+import Control.Monad.Reader ( MonadReader(..), ReaderT(..) )
+import Control.Monad.Except ( MonadError(..), ExceptT(..) )
+import Control.Monad.Identity ( Identity )
+import Control.Applicative (Const)
 
 data DataPrim =
   DataInt Int64
@@ -14,30 +24,24 @@ data DataPrim =
   | DataNull
 
 class (Eq a, Ord a) => DataField a where
+  typeName :: a -> String
   readPrim :: DataPrim -> Maybe a
   writePrim :: a -> DataPrim
 
-class DataField k => DataKey k where
+-- |Class for data key. 
+class DataField k => DataKey k
 
-class Bundle t where
-  singleton :: DataField a => a -> t a
-  -- |Should be O(1). Errors out when out of bound
-  atIndex :: DataField a => t a -> Int -> a
-  -- |Should be O(1). gives nothing When key doesn't exist
-  findIndex :: DataKey k => (t k -> k -> Maybe Int)
-  merge :: DataField a => [t a] -> t a
+data DataAny = forall a. (DataField a) => DataAny a
+data KeyAny = forall a. (DataKey a) => KeyAny a
 
-data Column t = forall a. (DataField a) => Column (t a)
-
-data Table t = Table {
-  keyCol :: String,
-  -- Small # of columns
-  getColumn :: [(String, Column t)]
+data Composite = Composite {
+  getData :: [(String, DataAny)]
 }
 
-data View t = View {
-  indices :: [Int],
-  viewColumn :: [(String, Column t)]
-}
+class Table t where
+  singleton :: a -> t a
+  merge :: [t a] -> t a
+  asList :: t a -> [a]
+  search :: t a -> KeyAny -> Maybe a
 
 

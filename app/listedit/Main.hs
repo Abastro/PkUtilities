@@ -3,8 +3,7 @@
 ---------------------------------------}
 module Main ( main ) where
 
-import Base.Interface ( application )
-import ListEdit.App ( app )
+import qualified ListEdit.App as App
 
 main :: IO ()
-main = application app
+main = App.main
