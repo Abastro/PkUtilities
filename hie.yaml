@@ -1,7 +1,7 @@
 cradle:
-  stack:
+  cabal:
     - path: "./src"
-      component: "pkutilities:lib"
+      component: "lib:pkutilities"
     - path: "./app/listedit"
       component: "pkutilities:exe:listedit"
     - path: "./app/dataedit"

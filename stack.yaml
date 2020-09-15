@@ -1,7 +1,0 @@
-resolver: lts-16.12
-
-packages:
-- .
-
-extra-deps:
-- direct-sqlite-2.3.26
