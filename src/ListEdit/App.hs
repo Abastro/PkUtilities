@@ -5,16 +5,17 @@ module ListEdit.App ( main ) where
 
 import Control.Monad ( when, unless, guard, forever, (>=>) )
 import Control.Monad.IO.Class ( MonadIO(..) )
-import Control.Monad.Reader
-import Control.Monad.State
+import Control.Monad.Reader ( ReaderT(..), asks )
+import Control.Monad.State ( StateT(..), gets, modify, evalStateT )
+import Control.Monad.Except ( runExceptT )
 
-import Data.Maybe ( isNothing, isJust )
 import Data.List ( isPrefixOf, intercalate )
 import Data.Foldable ( traverse_ )
 import Data.Sequence ( Seq )
 import qualified Data.Sequence as Seq
 
 import Text.Read.Lex ( numberToInteger )
+import Text.Printf ( printf )
 
 import System.Exit ( exitSuccess )
 import System.Environment ( getArgs )
@@ -56,22 +57,14 @@ main = do
 
   flip evalStateT AppState { content = list, isSaved = True }
     $ flip runReaderT path
-    $ forever loop
+    $ forever $ do
+    cmd <- liftIO $ prompt "|listedit|> "
+    unless (null cmd) $ runCommand commands cmd
+    liftIO putLine
 
-loop :: ListHandle ()
-loop = do
-  cmd <- liftIO $ prompt "|listedit|> "
-  unless (null cmd) $ case processCommand commands cmd of
-    Right action -> action
-    Left (FChoice []) -> liftIO $ putStrLn "Invalid operation"
-    Left format -> liftIO $ showUsage format
-  liftIO putLine
 
 load :: FilePath -> IO (Seq String)
 load path = fromList . lines <$> readOrMakeFile path ""
-
-showUsage :: Format -> IO ()
-showUsage format = putStrLn $ "Usage: " <> show format
 
 inRange :: Int -> ListHandle () -> ListHandle ()
 inRange i r = do
@@ -80,7 +73,7 @@ inRange i r = do
   else liftIO $ putStrLn "Out of range"
 
 numbering :: Seq String -> Seq String
-numbering = Seq.mapWithIndex (\i -> (<>) $ show (i + 1) <> ". ")
+numbering = Seq.mapWithIndex (printf "%i. %s" . (+1))
 
 saveIt :: ListHandle ()
 saveIt = do
@@ -98,22 +91,31 @@ intCmd :: String -> CmdParse Int
 intCmd name =
   failOn (fmap fromInteger . numberToInteger) (numberCmd name)
 
-commands :: Commands (ListHandle ())
-commands = mkCommands [
-  ("help", cmdHelp)
-  , ("view", cmdView)
-  , ("quit", cmdQuit)
-  , ("revert", cmdRevert)
-  , ("save", cmdSave)
-  , ("add", cmdAdd)
-  , ("remove", cmdRemove)
-  , ("move", cmdMove)
-  , ("clear", cmdClear)
-  ] where
+commands :: CommandHandle (ListHandle ())
+commands = CommandHandle {
+  commandMap = mkCmdMap [
+  ("help", mkCommand cmdHelp "Shows commands and their usages")
+  , ("view", mkCommand cmdView "Views the list")
+  , ("quit", mkCommand cmdQuit "Quit")
+  , ("revert", mkCommand cmdRevert "Reverts to the last saved state")
+  , ("save", mkCommand cmdSave "Saves the list to the disk")
+  , ("add", mkCommand cmdAdd "Adds an element to the list, to the bottom by default")
+  , ("remove", mkCommand cmdRemove "Remove an element from the list, from the top by default")
+  , ("move", mkCommand cmdMove "Moves an element")
+  , ("clear", mkCommand cmdClear "Clears the list to be empty")
+  ],
+  illformed = liftIO . putStrLn $ "Invalid operation",
+  wrongCommand = \cmd -> liftIO . putStrLn $ "Wrong command: " <> cmd,
+  wrongFormat = \_ format -> liftIO . putStrLn $ "Usage: " <> show format
+} where
   cmdHelp = help <$> maybeCmd (getIdentCmd "<command>") where
-    help (Just cmd) = liftIO $ do
-      let format = cmdFormatOf cmd commands
-      maybe (putStrLn "Command does not exist") showUsage format
+    viewCommand key command = do
+      putStrLn $ printf "<< %s >>" key
+      putStrLn $ description command
+      putStrLn $ printf "Usage: %s %s" key $ show (format command)
+    help (Just key) = liftIO $ do
+      let command = getCommand commands key
+      maybe (putStrLn "Command does not exist") (viewCommand key) command
     help Nothing = liftIO $ do
       putStrLn "Available commands:"
       traverse_ putStrLn $ cmdKeys commands

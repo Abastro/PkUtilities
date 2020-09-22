@@ -1,6 +1,7 @@
 module Base.Command where
 
 import Control.Monad ( when )
+import Control.Monad.Except ( MonadError(..) )
 
 import Data.Maybe ( listToMaybe )
 import Data.Functor.Compose ( Compose(..) )
@@ -20,7 +21,7 @@ import Text.Read
       (<++),
       Lexeme(..) )
 import Text.Read.Lex ( Number )
-import Text.ParserCombinators.ReadP ( munch )
+import Text.ParserCombinators.ReadP ( eof, munch )
 
 -- |Parsing format. First parameter is name
 data Format =
@@ -94,28 +95,43 @@ failOn f = Compose . (fmap $ \x -> do
   pure y) . getCompose
 
 
-type Commands a = Map String (CmdParse a)
+data Command a = Command {
+  parser :: ReadPrec a,
+  format :: Format,
+  description :: String
+}
 
-mkCommands :: [(String, CmdParse a)] -> Commands a
-mkCommands = Map.fromList
+mkCommand :: CmdParse a -> String -> Command a
+mkCommand (Compose (format, parser)) desc = Command {
+  parser = parser,
+  format = format,
+  description = desc
+}
 
-cmdKeys :: Commands a -> [String]
-cmdKeys = Map.keys
+mkCmdMap :: [(String, Command a)] -> Map String (Command a)
+mkCmdMap = Map.fromList
 
-cmdFormatOf :: String -> Commands a -> Maybe Format
-cmdFormatOf key = fmap (FIdent key <>) . fmap formatOf . Map.lookup key
+data CommandHandle a = CommandHandle {
+  commandMap :: Map String (Command a),
+  illformed :: a,
+  wrongCommand :: String -> a,
+  wrongFormat :: String -> Format -> a
+}
 
--- |Processes command.
--- When parse error occurred, gives desired format.
--- When no command is selected, gives Left (FChoice [])
-processCommand :: Commands a -> String -> Either Format a
-processCommand cmds input = let
+getCommand :: CommandHandle a -> String -> Maybe (Command a)
+getCommand = flip Map.lookup . commandMap
+
+cmdKeys :: CommandHandle a -> [String]
+cmdKeys = Map.keys . commandMap
+
+runCommand :: CommandHandle a -> String -> a
+runCommand cmdHandle input = let
   process = do
     Ident i <- lexP
-    Just parse <- pure $ Map.lookup i cmds
-    let (format, parser) = getCompose parse
-    (Right <$> parser) <++
-      ((Left $ FIdent i <> format) <$ lift (munch $ const True))
-  in maybe (Left $ FChoice []) id . listToMaybe $ do
-    (act, "") <- readPrec_to_S process minPrec input
-    pure act
+    case getCommand cmdHandle i of
+      Nothing -> pure $ wrongCommand cmdHandle i
+      Just command -> do
+        let formatErr = wrongFormat cmdHandle i $ FIdent i <> format command
+        (parser command <* lift eof) <++ pure formatErr
+  in maybe (illformed cmdHandle) id . listToMaybe
+  $ fst <$> readPrec_to_S process minPrec input

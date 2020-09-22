@@ -24,7 +24,7 @@ library
       Base.Command
       Base.Interface
       DataEdit.App
-      DataEdit.DataRep
+      DataEdit.SQLData
       ListEdit.App
   other-modules:
       Paths_pkutilities
