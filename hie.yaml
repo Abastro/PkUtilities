@@ -1,9 +1,0 @@
-cradle:
-  cabal:
-    - path: "./src"
-      component: "lib:pkutilities"
-    - path: "./app/listedit"
-      component: "pkutilities:exe:listedit"
-    - path: "./app/dataedit"
-      component: "pkutilities:exe:dataedit"
-

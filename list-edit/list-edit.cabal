@@ -1,0 +1,47 @@
+cabal-version: 3.0
+
+name:           pk-utilities
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/Abastro/PkUtilities#readme>
+homepage:       https://github.com/Abastro/PkUtilities#readme
+bug-reports:    https://github.com/Abastro/PkUtilities/issues
+author:         Abastro
+maintainer:     Abastro
+copyright:      2024 Abastro
+license:        BSD-3-Clause
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+-- source-repository head
+--   type: git
+--   location: https://github.com/Abastro/PkUtilities
+
+common opts
+  ghc-options: -W -threaded -rtsopts -with-rtsopts=-N
+
+library
+  exposed-modules:
+    Base.Command
+    Base.Interface
+    ListEdit.App
+  hs-source-dirs: src
+  build-depends:
+    base >=4.7 && <5,
+    bytestring,
+    text,
+    containers,
+    mtl,
+  default-language: GHC2021
+
+executable listedit
+  import: opts
+  main-is: Main.hs
+  hs-source-dirs: app/listedit
+  build-depends:
+    base,
+    pk-utilities
+  default-language: GHC2021
+

@@ -5,6 +5,8 @@ cabal.project.local
 stack.yaml.lock
 
 *.code-workspace
+.vscode/
+
 Setup.hs
 
 list

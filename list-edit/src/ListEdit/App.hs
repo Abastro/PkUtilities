@@ -3,13 +3,13 @@
 ---------------------------------------}
 module ListEdit.App ( main ) where
 
-import Control.Monad ( when, unless, guard, forever, (>=>) )
+import Control.Monad
 import Control.Monad.IO.Class ( MonadIO(..) )
-import Control.Monad.Reader ( ReaderT(..), asks )
-import Control.Monad.State ( StateT(..), gets, modify, evalStateT )
-import Control.Monad.Except ( runExceptT )
+import Control.Monad.Reader
+import Control.Monad.State
+import Control.Monad.Except
 
-import Data.List ( isPrefixOf, intercalate )
+import Data.List
 import Data.Foldable ( traverse_ )
 import Data.Sequence ( Seq )
 import qualified Data.Sequence as Seq
@@ -77,13 +77,12 @@ numbering = Seq.mapWithIndex (printf "%i. %s" . (+1))
 
 saveIt :: ListHandle ()
 saveIt = do
-  saving <- asks $ writeFile
+  saving <- asks writeFile
   gets content >>= liftIO . saving . unlines . toList
   modify setSaved
 
 printIt :: ListHandle ()
 printIt = gets content >>= traverse_ (liftIO . putStrLn) . numbering
-
 
 {- Commands -}
 
@@ -103,10 +102,10 @@ commands = CommandHandle {
   , ("remove", mkCommand cmdRemove "Remove an element from the list, from the top by default")
   , ("move", mkCommand cmdMove "Moves an element")
   , ("clear", mkCommand cmdClear "Clears the list to be empty")
-  ],
-  illformed = liftIO . putStrLn $ "Invalid operation",
-  wrongCommand = \cmd -> liftIO . putStrLn $ "Wrong command: " <> cmd,
-  wrongFormat = \_ format -> liftIO . putStrLn $ "Usage: " <> show format
+  ]
+  , illformed = liftIO . putStrLn $ "Invalid operation"
+  , wrongCommand = \cmd -> liftIO . putStrLn $ "Wrong command: " <> cmd
+  , wrongFormat = \_ format -> liftIO . putStrLn $ "Usage: " <> show format
 } where
   cmdHelp = help <$> maybeCmd (getIdentCmd "<command>") where
     viewCommand key command = do

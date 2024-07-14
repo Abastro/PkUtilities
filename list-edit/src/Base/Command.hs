@@ -1,27 +1,16 @@
 module Base.Command where
 
 import Control.Monad ( when )
-import Control.Monad.Except ( MonadError(..) )
 
-import Data.Maybe ( listToMaybe )
+import Data.Maybe
+import Data.List
 import Data.Functor.Compose ( Compose(..) )
-
-import Data.List ( intercalate )
 import Data.Map ( Map )
 import qualified Data.Map as Map
 
 import Text.Read
-    ( ReadPrec,
-      lexP,
-      choice,
-      lift,
-      minPrec,
-      pfail,
-      readPrec_to_S,
-      (<++),
-      Lexeme(..) )
 import Text.Read.Lex ( Number )
-import Text.ParserCombinators.ReadP ( eof, munch )
+import Text.ParserCombinators.ReadP ( eof )
 
 -- |Parsing format. First parameter is name
 data Format =
@@ -37,9 +26,9 @@ instance Show Format where
   show (FIdent i) = i
   show (FString s) = show s
   show (FNumber n) = "num_" <> n
-  show (FConcat list) = intercalate " " $ show <$> list
+  show (FConcat list) = unwords $ show <$> list
   show (FMaybe f) = "[" <> show f <> "]"
-  show (FChoice list) = "(" <> (intercalate "|" $ show <$> list) <> ")"
+  show (FChoice list) = "(" <> intercalate "|" (show <$> list) <> ")"
 
 instance Semigroup Format where
   FConcat l <> FConcat m = FConcat (l <> m)
@@ -66,8 +55,7 @@ choiceCmd list = Compose (
 identCmd :: String -> CmdParse ()
 identCmd t = Compose (FIdent t, do
   Ident x <- lexP
-  when (x /= t) $ pfail
-  pure ())
+  when (x /= t) pfail)
 
 getIdentCmd :: String -> CmdParse String
 getIdentCmd name = Compose (FIdent name, do
@@ -90,7 +78,7 @@ maybeCmd (Compose (f, p)) = Compose (FMaybe f,
   (Just <$> p) <++ pure Nothing)
 
 failOn :: (a -> Maybe b) -> CmdParse a -> CmdParse b
-failOn f = Compose . (fmap $ \x -> do
+failOn f = Compose . fmap (\x -> do
   Just y <- f <$> x
   pure y) . getCompose
 
@@ -133,5 +121,5 @@ runCommand cmdHandle input = let
       Just command -> do
         let formatErr = wrongFormat cmdHandle i $ FIdent i <> format command
         (parser command <* lift eof) <++ pure formatErr
-  in maybe (illformed cmdHandle) id . listToMaybe
+  in fromMaybe (illformed cmdHandle) . listToMaybe
   $ fst <$> readPrec_to_S process minPrec input
