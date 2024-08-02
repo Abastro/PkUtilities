@@ -1,0 +1,21 @@
+[apt]
+description = "Package manager for system updates"
+
+[apt.command.update]
+description = "Surveys new updates that would be installed."
+
+[apt.command.upgrade]
+description = "Performs an upgrade based on 'apt update'."
+
+[apt.command.install]
+description = "Installs the specified packages."
+arguments = [{ name = "package", arity = "many", type = "text" }]
+
+[apt.command.autoremove]
+description = "Removes the specified packages, and unused dependencies."
+arguments = [{ name = "package", arity = "many", type = "text" }]
+
+[apt.command.search]
+description = "Searches for packages."
+arguments = [{ name = "package", arity = "one", type = "text" }]
+

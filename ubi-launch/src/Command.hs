@@ -1,29 +1,71 @@
-module Command where
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 
-import Data.Set qualified as S
+module Command (
+  Command (..),
+  Option (..),
+  MetaVar (..),
+  Arity (..),
+) where
+
+import Data.Map.Strict qualified as M
+import Data.Maybe
 import Data.Text qualified as T
 import Data.Vector qualified as V
+import Toml.Schema
 
 -- | Possibly nested commands.
 data Command = Command
-  { command :: T.Text,
-    info :: CommandInfo
+  { cmdDescription :: Maybe T.Text,
+    arguments :: V.Vector MetaVar,
+    options :: M.Map T.Text Option,
+    subCommands :: M.Map T.Text Command
   }
+  deriving (Show)
 
--- | Command information.
--- The arguments are assumed to be taken from front to back.
-data CommandInfo
-  = Group (V.Vector Command)
-  | Options (V.Vector Option) CommandInfo
-  | End
+instance FromValue Command where
+  fromValue :: Value' l -> Matcher l Command
+  fromValue =
+    parseTableFromValue $
+      Command
+        <$> optKey "description"
+        <*> (maybe V.empty V.fromList <$> optKey "arguments")
+        <*> (fromMaybe M.empty <$> optKey "options")
+        <*> (fromMaybe M.empty <$> optKey "command")
 
 data Option = Option
-  { aliases :: S.Set T.Text,
-    metavar :: Maybe MetaVar,
-    helpText :: Maybe T.Text
+  { optDescription :: Maybe T.Text,
+    metavar :: Maybe MetaVar
   }
+  deriving (Show)
 
-data MetaVar
-  = TextVar T.Text
-  | FileVar FilePath
-  | DirVar FilePath
+instance FromValue Option where
+  fromValue :: Value' l -> Matcher l Option
+  fromValue =
+    parseTableFromValue $
+      Option
+        <$> optKey "description"
+        <*> optKey "argument"
+
+data MetaVar = MetaVar
+  { varName :: T.Text,
+    arity :: Arity,
+    type_ :: T.Text
+  }
+  deriving (Show)
+
+instance FromValue MetaVar where
+  fromValue :: Value' l -> Matcher l MetaVar
+  fromValue =
+    parseTableFromValue $
+      MetaVar <$> reqKey "name" <*> reqKey "arity" <*> reqKey "type"
+
+data Arity = One | Many
+  deriving (Show)
+
+instance FromValue Arity where
+  fromValue :: Value' l -> Matcher l Arity
+  fromValue = \case
+    Text' _ "one" -> pure One
+    Text' _ "many" -> pure Many
+    _ -> fail "arity: one|many"

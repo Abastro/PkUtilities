@@ -11,7 +11,7 @@ copyright:          2024 Abastro
 category:           System
 build-type:         Simple
 extra-doc-files:
-  CHANGELOG.md
+    CHANGELOG.md
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 -- extra-source-files:
@@ -19,26 +19,34 @@ extra-doc-files:
 common warnings
     ghc-options: -Wall
 
-library
-    import:           warnings
-    exposed-modules:
-        Command
-        Detect.Autocomplete
-        Detect.Help
+common dependencies
     build-depends:
         base ^>=4.17.2.1,
         vector,
         text,
         bytestring,
         containers,
+        optparse-applicative,
+        megaparsec ^>=9.6.1,
+        toml-parser ^>=2.0.1.0,
+
+common extensions
+    default-extensions:
+        LambdaCase
+        OverloadedStrings
+
+library
+    import:           warnings, dependencies, extensions
+    exposed-modules:
+        Command
+        Detect.Help
     hs-source-dirs:   src
     default-language: GHC2021
 
 executable ubi-launch
-    import:           warnings
+    import:           warnings, dependencies, extensions
     main-is:          Main.hs
     build-depends:
-        base ^>=4.17.2.1,
         ubi-launch
     hs-source-dirs:   app
     default-language: GHC2021
