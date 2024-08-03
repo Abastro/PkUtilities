@@ -1,6 +1,5 @@
 packages:
   list-edit/list-edit.cabal
-  ubi-launch/ubi-launch.cabal
 
 with-compiler: ghc-9.4.8
 
